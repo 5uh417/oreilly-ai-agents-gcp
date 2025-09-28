@@ -1,5 +1,7 @@
 # AI Agents with Google's Agent Development Kit (ADK) Bootcamp
 
+_This is not an official Google product_
+
 ## Course Overview
 
 This repository contains materials for the **O'Reilly Live Training: AI Agents with Google's Agent Development Kit (ADK) Bootcamp** - a comprehensive 2-day course on building AI agents with Gemini, Agent Protocols, and AgentOps.
