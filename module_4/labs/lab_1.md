@@ -652,6 +652,8 @@ Then in your browser at `http://127.0.0.1:8080`, you'll see a dropdown to select
 - `hierarchical_pattern.ProjectManager`
 - `human_loop_pattern.BookPublishingFlow`
 
+**IMPORTANT**: Test the Human-in-the-loop agent using the `adk run <path_to_the_parent_folder>` instead.
+
 ### **Example Prompts for Each Pattern**
 
 **Sequential Agent**:

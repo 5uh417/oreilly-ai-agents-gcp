@@ -369,10 +369,18 @@ class StoryFlowAgent(BaseAgent):
         """
         logger.info(f"[{self.name}] Starting creative writing workflow")
 
-        # Ensure we have a topic to work with
+        # Extract topic from user message or session state
         topic = ctx.session.state.get("topic")
+
+        # If no topic in state, extract from the user's current message
+        if not topic and ctx.user_content and ctx.user_content.parts:
+            topic = ctx.user_content.parts[0].text.strip()
+            # Store the topic in session state for consistency
+            ctx.session.state["topic"] = topic
+            logger.info(f"[{self.name}] Extracted topic from user message: {topic}")
+
         if not topic:
-            logger.error(f"[{self.name}] No topic provided in session state")
+            logger.error(f"[{self.name}] No topic provided in user message or session state")
             return
 
         logger.info(f"[{self.name}] Working on topic: {topic}")
