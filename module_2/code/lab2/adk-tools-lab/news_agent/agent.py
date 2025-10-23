@@ -1,12 +1,14 @@
 from typing import Dict, List
+
+import yfinance as yf
+from dotenv import load_dotenv
 from google.adk.agents import Agent
 from google.adk.tools import google_search
 from google.adk.tools.agent_tool import AgentTool
-import yfinance as yf
-from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
 
 def get_financial_context(tickers: List[str]) -> Dict[str, str]:
     """
