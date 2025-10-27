@@ -1,0 +1,44 @@
+sources:
+  my-sqlite-source:
+    kind: sqlite
+    database: ../products.db
+
+tools:
+  search-products-by-category:
+    kind: sqlite-sql
+    source: my-sqlite-source
+    description: Search for products by category
+    parameters:
+      - name: category
+        type: string
+        description: The category to search for (e.g., Electronics, Home Goods)
+    statement: SELECT * FROM products WHERE category = $1
+
+  get-products-sorted-by-price:
+    kind: sqlite-sql
+    source: my-sqlite-source
+    description: Get products sorted by price (high to low)
+    statement: SELECT * FROM products ORDER BY price DESC
+
+  get-low-stock-products:
+    kind: sqlite-sql
+    source: my-sqlite-source
+    description: Get products with low stock (less than 200 units)
+    statement: SELECT * FROM products WHERE stock_quantity < 200
+
+  get-average-price-by-category:
+    kind: sqlite-sql
+    source: my-sqlite-source
+    description: Get the average price for a specific category
+    parameters:
+      - name: category
+        type: string
+        description: The category to calculate average price for
+    statement: SELECT category, AVG(price) as average_price FROM products WHERE category = $1 GROUP BY category
+
+toolsets:
+  my-toolset:
+    - search-products-by-category
+    - get-products-sorted-by-price
+    - get-low-stock-products
+    - get-average-price-by-category

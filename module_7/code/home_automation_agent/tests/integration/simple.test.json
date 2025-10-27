@@ -1,0 +1,33 @@
+{
+    "eval_set_id": "home_automation_agent_unit_tests",
+    "name": "Unit tests for basic device control.",
+    "eval_cases": [
+      {
+        "eval_id": "turn_off_bedroom_device",
+        "conversation": [
+          {
+            "user_content": {
+              "parts": [{ "text": "Turn off device_2 in the Bedroom." }]
+            },
+            "final_response": {
+              "parts": [
+                { "text": "Successfully set the device_2 in the Bedroom to off." }
+              ]
+            },
+            "intermediate_data": {
+              "tool_uses": [
+                {
+                  "args": {
+                    "location": "Bedroom",
+                    "device_id": "device_2",
+                    "status": "OFF"
+                  },
+                  "name": "set_device_status"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }

@@ -1,0 +1,79 @@
+{
+  "eval_set_id": "ui_tests",
+  "name": "ui_tests",
+  "eval_cases": [
+    {
+      "eval_id": "casefe2418",
+      "conversation": [
+        {
+          "invocation_id": "e-e5840d7c-2cef-457b-b182-8062e093949b",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Turn on the desk lamp in the office."
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "the office is now dark. "
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "invocation_events": [
+              {
+                "author": "home_automation_agent",
+                "content": {
+                  "parts": [
+                    {
+                      "thought_signature": "Cv8BAdHtim87_c3XOQWqFuGqqZFbSOwP1sOfV8XNDDMHFRiM0F80VvUwejRGt5WCo1v3mQYefHR6BpV4zL5OVJIgWjZMxVZ-J2y_TadecJH3lZYg9Vpw-T0i0AnbdqFq1WrFV4xTj09cYMbUUm9VT4hJGqo2ug-cG4ngBow0Ma5AwHhsAP3GjVAW4m9POr-Z6mpRBlEnEmRUm86CFmH_q71N79WmQSRkTTDjTapGPzk-arodV9SP9XH5nPfRLWpgx-3G0Ge7uXNAO27BIys5rvE61Gn3sv_MXzO468o8XgpTSM-71v-OEmihGFPBnrRa_xeodzzypGpQpyh5o9fPRdPW",
+                      "function_call": {
+                        "id": "adk-66939e89-205b-496b-bb3a-47ea634f3d47",
+                        "args": {
+                          "device_id": "desk lamp",
+                          "location": "office",
+                          "status": "ON"
+                        },
+                        "name": "set_device_status"
+                      }
+                    }
+                  ],
+                  "role": "model"
+                }
+              },
+              {
+                "author": "home_automation_agent",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "adk-66939e89-205b-496b-bb3a-47ea634f3d47",
+                        "name": "set_device_status",
+                        "response": {
+                          "success": true,
+                          "message": "Successfully set the desk lamp in office to on."
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                }
+              }
+            ]
+          },
+          "creation_timestamp": 1761470714.143879
+        }
+      ],
+      "session_input": {
+        "app_name": "home_automation_agent",
+        "user_id": "user"
+      },
+      "creation_timestamp": 1761471041.2664661
+    }
+  ],
+  "creation_timestamp": 1761471006.651415
+}
