@@ -1,0 +1,11 @@
+# PUPPET 7 ANTI-PATTERN: Hiera 3-style configuration
+# This needs to be migrated to Hiera 5 format for Puppet 8
+---
+:backends:
+  - yaml
+:yaml:
+  :datadir: data
+:hierarchy:
+  - "nodes/%{::clientcert}"
+  - "os/%{::osfamily}"
+  - common

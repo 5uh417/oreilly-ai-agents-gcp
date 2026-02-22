@@ -1,0 +1,21 @@
+{
+  "name": "myorg-webapp",
+  "version": "2.5.0",
+  "author": "myorg",
+  "summary": "Manages web application deployment and configuration",
+  "license": "Apache-2.0",
+  "source": "https://github.com/myorg/puppet-webapp",
+  "dependencies": [
+    { "name": "puppetlabs-stdlib", "version_requirement": ">= 6.0.0 < 9.0.0" },
+    { "name": "puppetlabs-concat", "version_requirement": ">= 4.0.0 < 8.0.0" },
+    { "name": "puppetlabs-firewall", "version_requirement": ">= 3.0.0 < 6.0.0" }
+  ],
+  "operatingsystem_support": [
+    { "operatingsystem": "RedHat", "operatingsystemrelease": ["7", "8", "9"] },
+    { "operatingsystem": "Ubuntu", "operatingsystemrelease": ["20.04", "22.04"] },
+    { "operatingsystem": "Debian", "operatingsystemrelease": ["11", "12"] }
+  ],
+  "requirements": [
+    { "name": "puppet", "version_requirement": ">= 7.0.0 < 8.0.0" }
+  ]
+}

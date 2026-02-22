@@ -1,0 +1,28 @@
+# Monitoring Configuration for <%= @app_name_upper %>
+# Server: <%= @server_fqdn %> (<%= @server_ip %>)
+# OS: <%= @os_description %>
+
+[general]
+enabled = <%= @enable_monitoring %>
+check_interval = <%= @real_interval %>
+
+[server]
+fqdn = <%= @server_fqdn %>
+ip = <%= @server_ip %>
+memory_mb = <%= @total_memory %>
+cpu_count = <%= @cpu_count %>
+
+[thresholds]
+cpu_warning = <%= @cpu_warn %>
+memory_warning = <%= @mem_warn %>
+
+[health]
+endpoint = <%= @health_endpoint %>
+
+<% if @alert_email -%>
+[alerts]
+email = <%= @alert_email %>
+<% @alert_recipients.each do |recipient| -%>
+recipient = <%= recipient %>
+<% end -%>
+<% end -%>

@@ -1,0 +1,32 @@
+# Common Hiera data for the webapp module
+---
+webapp::app_name: 'mywebapp'
+webapp::app_port: '8080'
+webapp::deploy_dir: '/opt/webapp'
+webapp::app_user: 'webapp'
+webapp::manage_firewall: true
+webapp::config_hash:
+  max_connections: 256
+  timeout: 30
+  keep_alive: true
+webapp::allowed_ips:
+  - '10.0.0.0/8'
+  - '172.16.0.0/12'
+webapp::extra_packages:
+  - 'curl'
+  - 'jq'
+  - 'net-tools'
+webapp::include_classes: []
+webapp::monitoring::enable_monitoring: true
+webapp::monitoring::check_interval: '60'
+webapp::monitoring::thresholds:
+  cpu_warn: 80
+  cpu_critical: 95
+  mem_warn: 85
+  mem_critical: 95
+  disk_warn: 80
+  disk_critical: 90
+webapp::deploy_settings:
+  timeout: 300
+  retries: 3
+  rollback_on_failure: true

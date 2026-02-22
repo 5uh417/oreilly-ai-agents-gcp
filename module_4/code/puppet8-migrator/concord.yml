@@ -1,0 +1,276 @@
+# ──────────────────────────────────────────────────────────────────────
+# Concord Pipeline: Puppet 7 → 8 Migration
+# ──────────────────────────────────────────────────────────────────────
+#
+# This pipeline supports two execution modes:
+#
+#   1. DIRECT MODE (recommended for simplicity):
+#      Concord runs the concord_runner.py script directly as a task.
+#      No API server needed. The script clones → migrates → pushes.
+#
+#   2. API MODE (recommended for shared/multi-team use):
+#      Concord calls the FastAPI server's /migrate/sync endpoint.
+#      Requires the API server to be running (e.g., as a k8s deployment).
+#
+# Trigger this pipeline via:
+#   - Concord UI (manual trigger with form parameters)
+#   - Concord API (POST /api/v2/process with parameters)
+#   - Scheduled trigger (e.g., nightly migration runs)
+#   - GitHub webhook (on push to a monitored branch)
+#
+# Required Concord Secrets (set in Organization or Project secrets):
+#   - googleApiKey: Google AI Studio API key
+#   - gitToken: GitHub PAT with repo read/write access
+#
+# ──────────────────────────────────────────────────────────────────────
+
+configuration:
+  runtime: "concord-v2"
+  dependencies:
+    - "mvn://com.walmartlabs.concord.plugins.basic:ansible-tasks:2.+"
+  arguments:
+    # ── User-configurable parameters ──
+    # Override these when triggering the pipeline
+    repoUrl: "https://github.com/myorg/puppet-webapp.git"
+    sourceBranch: "main"
+    targetBranch: ""  # Empty = auto-generated
+    modulePath: "."
+    pattern: "migrator"  # migrator | analyzer | validator
+    pushResults: true
+    apiServerUrl: ""  # Set this for API mode; leave empty for direct mode
+
+    # ── Internal config ──
+    pythonVersion: "3.11"
+    migrationToolRepo: "https://github.com/myorg/puppet8-migrator.git"
+    migrationToolBranch: "main"
+
+# ──────────────────────────────────────────────────────────────────────
+# Trigger Forms (Concord UI parameters)
+# ──────────────────────────────────────────────────────────────────────
+
+forms:
+  migrationParams:
+    - repoUrl: { label: "Repository URL", type: "string", allow: "^https://.*\\.git$" }
+    - sourceBranch: { label: "Source Branch", type: "string", value: "main" }
+    - targetBranch: { label: "Target Branch (empty=auto)", type: "string", value: "" }
+    - modulePath: { label: "Module Path in Repo", type: "string", value: "." }
+    - pattern:
+        label: "Migration Pattern"
+        type: "string"
+        value: "migrator"
+        allow: "^(migrator|analyzer|validator)$"
+    - pushResults: { label: "Push to Remote?", type: "boolean", value: true }
+
+# ──────────────────────────────────────────────────────────────────────
+# Profiles
+# ──────────────────────────────────────────────────────────────────────
+
+profiles:
+  # Use this profile for direct Python execution (no API server)
+  direct:
+    flows:
+      default:
+        - call: directMigration
+
+  # Use this profile when calling the API server
+  api:
+    flows:
+      default:
+        - call: apiMigration
+
+  # Analysis only — no code changes
+  analyze:
+    flows:
+      default:
+        - call: directMigration
+    configuration:
+      arguments:
+        pattern: "analyzer"
+        pushResults: false
+
+  # Dry-run — migrate but don't push
+  dryrun:
+    flows:
+      default:
+        - call: directMigration
+    configuration:
+      arguments:
+        pushResults: false
+
+# ──────────────────────────────────────────────────────────────────────
+# Flows
+# ──────────────────────────────────────────────────────────────────────
+
+flows:
+  # Default flow — uses direct mode
+  default:
+    - call: directMigration
+
+  # ──────────────────────────────────────────────────────────────────
+  # DIRECT MODE: Run migration script in Concord task container
+  # ──────────────────────────────────────────────────────────────────
+  directMigration:
+    - log: "=== Puppet 7→8 Migration Pipeline ==="
+    - log: "Repository: ${repoUrl}"
+    - log: "Source branch: ${sourceBranch}"
+    - log: "Module path: ${modulePath}"
+    - log: "Pattern: ${pattern}"
+    - log: "Push results: ${pushResults}"
+
+    # Step 1: Setup Python environment and install dependencies
+    - task: script
+      in:
+        body: |
+          #!/bin/bash
+          set -euo pipefail
+
+          echo "=== Setting up Python environment ==="
+
+          # Create virtualenv
+          python3 -m venv /tmp/puppet8-venv
+          source /tmp/puppet8-venv/bin/activate
+
+          # Clone the migration tool
+          echo "=== Cloning migration tool ==="
+          git clone --depth 1 --branch "${migrationToolBranch}" \
+            "${migrationToolRepo}" /tmp/puppet8-migrator
+
+          # Install dependencies
+          cd /tmp/puppet8-migrator
+          pip install --quiet google-adk python-dotenv
+
+          echo "=== Environment ready ==="
+
+    # Step 2: Run the migration
+    - task: script
+      in:
+        body: |
+          #!/bin/bash
+          set -euo pipefail
+
+          source /tmp/puppet8-venv/bin/activate
+          cd /tmp/puppet8-migrator
+
+          # Set environment from Concord secrets
+          export GOOGLE_API_KEY="${crypto.exportAsString('googleApiKey', 'googleApiKey')}"
+          export GOOGLE_GENAI_USE_VERTEXAI=0
+          export GIT_TOKEN="${crypto.exportAsString('gitToken', 'gitToken')}"
+          export GIT_AUTHOR_NAME="puppet8-migrator-concord"
+          export GIT_AUTHOR_EMAIL="puppet8-migrator@noreply"
+          export CONCORD_REPORT_DIR="${workDir}/_attachments"
+
+          # Build the command
+          CMD="python concord_runner.py"
+          CMD="${CMD} --repo-url '${repoUrl}'"
+          CMD="${CMD} --source-branch '${sourceBranch}'"
+          CMD="${CMD} --module-path '${modulePath}'"
+          CMD="${CMD} --pattern '${pattern}'"
+
+          # Add target branch if specified
+          if [ -n "${targetBranch}" ]; then
+            CMD="${CMD} --target-branch '${targetBranch}'"
+          fi
+
+          # Add push flag
+          if [ "${pushResults}" = "true" ]; then
+            CMD="${CMD} --push"
+          fi
+
+          echo "=== Running migration ==="
+          echo "Command: ${CMD}"
+          eval ${CMD}
+
+          EXIT_CODE=$?
+
+          echo "=== Migration exit code: ${EXIT_CODE} ==="
+          exit ${EXIT_CODE}
+      out:
+        migrationExitCode: "${result.exitCode}"
+
+    # Step 3: Handle results
+    - if: ${migrationExitCode == 0}
+      then:
+        - log: "Migration completed successfully!"
+        - log: "Check the migration report in pipeline attachments."
+      else:
+        - if: ${migrationExitCode == 2}
+          then:
+            - log: "No changes needed — module appears already Puppet 8 compatible."
+          else:
+            - log: "Migration failed with exit code: ${migrationExitCode}"
+            - throw: "Puppet 8 migration failed. Check logs for details."
+
+  # ──────────────────────────────────────────────────────────────────
+  # API MODE: Call the migration API server
+  # ──────────────────────────────────────────────────────────────────
+  apiMigration:
+    - log: "=== Puppet 7→8 Migration (API Mode) ==="
+    - log: "API Server: ${apiServerUrl}"
+    - log: "Repository: ${repoUrl}"
+
+    # Call the synchronous migration endpoint
+    - task: http
+      in:
+        method: POST
+        url: "${apiServerUrl}/migrate/sync"
+        headers:
+          Content-Type: "application/json"
+        body:
+          repo_url: "${repoUrl}"
+          source_branch: "${sourceBranch}"
+          target_branch: "${targetBranch}"
+          module_path: "${modulePath}"
+          pattern: "${pattern}"
+          push_results: ${pushResults}
+        connectTimeout: 30
+        readTimeout: 600  # 10 minute timeout for migration
+      out:
+        apiResponse: "${result}"
+    - log: "API response status: ${apiResponse.status}"
+    - log: "Migration result: ${apiResponse.body}"
+
+    - if: ${apiResponse.body.status == 'completed'}
+      then:
+        - log: "Migration completed successfully via API!"
+        - log: "Branch: ${apiResponse.body.result.git.branch}"
+      else:
+        - log: "Migration failed via API: ${apiResponse.body.error}"
+        - throw: "API migration failed"
+
+  # ──────────────────────────────────────────────────────────────────
+  # BATCH MODE: Migrate multiple modules from a list
+  # ──────────────────────────────────────────────────────────────────
+  batchMigration:
+    - log: "=== Batch Puppet 7→8 Migration ==="
+
+    # Expect 'moduleList' as a YAML list of {repoUrl, modulePath, sourceBranch}
+    - call: directMigration
+      withItems: ${moduleList}
+      in:
+        repoUrl: ${item.repoUrl}
+        modulePath: ${item.modulePath}
+        sourceBranch: ${item.sourceBranch}
+      retry:
+        times: 2
+        delay: 30
+
+# ──────────────────────────────────────────────────────────────────────
+# Triggers (optional — uncomment to enable)
+# ──────────────────────────────────────────────────────────────────────
+
+# triggers:
+#   # Nightly migration check
+#   - cron:
+#       spec: "0 2 * * *"  # 2 AM daily
+#       entryPoint: "default"
+#       arguments:
+#         pattern: "analyzer"
+#         pushResults: false
+#
+#   # On push to main branch
+#   - github:
+#       version: 2
+#       entryPoint: "default"
+#       conditions:
+#         type: "push"
+#         branch: "main"
